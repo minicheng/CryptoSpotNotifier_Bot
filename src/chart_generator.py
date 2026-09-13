@@ -12,8 +12,35 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from matplotlib.ticker import FuncFormatter
 from strategy import calculate_ema, calculate_macd
 from config import SR_LOOKBACK_BARS
+
+
+def _format_chart_price(price):
+    """圖表標題專用價格格式化"""
+    if price is None:
+        return "N/A"
+    if price >= 1000:
+        return f"${price:,.2f}"
+    elif price >= 1:
+        return f"${price:.4f}"
+    elif price >= 0.001:
+        return f"${price:.6f}"
+    else:
+        return f"${price:.8f}"
+
+
+def _format_sr_val(price):
+    """阻力/支撐標示專用數值格式化"""
+    if price is None:
+        return "N/A"
+    if price >= 1000:
+        return f"{price:,.2f}"
+    elif price >= 1:
+        return f"{price:.4f}"
+    else:
+        return f"{price:.6f}"
 
 
 def generate_coin_chart(coin_data, output_dir="charts", n_display=75):
@@ -98,18 +125,23 @@ def generate_coin_chart(coin_data, output_dir="charts", n_display=75):
     ax1.set_facecolor("#131722")
     ax1.grid(True, linestyle="--", alpha=0.25, color=grid_color)
 
-    # 價格自適應最小實體高度
+    # 價格自適應最小實體高度（依顯示區間比例計算，避免低價幣被固定數值扭曲）
     price_range = max(highs) - min(lows)
-    min_body_h = max(price_range * 0.003, 0.01)
+    min_body_h = price_range * 0.0035
 
     for idx in x_indices:
         o, h, l, c = opens[idx], highs[idx], lows[idx], closes[idx]
         color = bull_color if c >= o else bear_color
         # 影線
         ax1.plot([idx, idx], [l, h], color=color, linewidth=1.1)
-        # 實體
-        body_low = min(o, c)
-        body_height = max(abs(c - o), min_body_h)
+        # 實體（十字星對稱擴展，正常實體保證忠實於開收盤價）
+        body_diff = abs(c - o)
+        if body_diff < min_body_h:
+            body_low = (o + c) / 2.0 - min_body_h / 2.0
+            body_height = min_body_h
+        else:
+            body_low = min(o, c)
+            body_height = body_diff
         rect = Rectangle(
             (idx - 0.35, body_low), 0.7, body_height,
             facecolor=color, edgecolor=color, alpha=0.92
@@ -122,20 +154,37 @@ def generate_coin_chart(coin_data, output_dir="charts", n_display=75):
     ax1.axhline(res_line, color="#ef5350", linestyle=":", linewidth=1.1, alpha=0.85)
     ax1.axhline(sup_line, color="#26a69a", linestyle=":", linewidth=1.1, alpha=0.85)
 
+    # 邊界外擴 padding
+    p_pad = price_range * 0.05
+    ax1.set_ylim(min(lows) - p_pad, max(highs) + p_pad)
+
     # 標題
     trend_tag = "TREND UP" if status_rd == 3 else "TREND DOWN"
     change_pct = change * 100
-    title_text = f"[{trend_tag}] {symbol} ({name}) | ${close_price:,.2f} ({change_pct:+.1f}%) | {conditions_met}/4"
+    title_text = f"[{trend_tag}] {symbol} ({name}) | {_format_chart_price(close_price)} ({change_pct:+.1f}%) | {conditions_met}/4"
     ax1.set_title(title_text, color="#ffffff", fontsize=12, fontweight="bold", pad=10)
 
     # 次標題 (均線與阻力支撐數值)
-    sub_text = f"EMA10 (Blue)  EMA20 (Red) | Resistance: {res_line:,.2f}  Support: {sup_line:,.2f}"
+    sub_text = f"EMA10 (Blue)  EMA20 (Red) | Resistance: {_format_sr_val(res_line)}  Support: {_format_sr_val(sup_line)}"
     ax1.text(0.5, -0.06, sub_text, transform=ax1.transAxes, color="#848e9c", fontsize=8.5, ha="center")
 
+    # 根據價格範圍動態調整 Y 軸小數點精度
+    def _price_tick_fmt(x, pos):
+        if price_range >= 100:
+            return f"{x:,.0f}" if price_range >= 1000 else f"{x:,.1f}"
+        elif price_range >= 1:
+            return f"{x:.2f}"
+        elif price_range >= 0.01:
+            return f"{x:.4f}"
+        else:
+            return f"{x:.6f}"
+
+    ax1.yaxis.set_major_formatter(FuncFormatter(_price_tick_fmt))
     ax1.yaxis.tick_right()
     ax1.yaxis.set_label_position("right")
     ax1.set_ylabel("Price", color="#848e9c", fontsize=8.5)
     ax1.tick_params(colors="#848e9c", labelsize=8.5)
+
 
     # ===== Subplot 2: 成交量 =====
     ax2.set_facecolor("#131722")
