@@ -251,9 +251,10 @@ def format_signals_message(signals, results, scan_time=""):
             if r.get("is_first_entry"):
                 new_signals_first.append(f"🚀 {sym}(現貨做多首次進場)")
             else:
-                past = '、'.join(entry_dates[:-1]) if len(entry_dates) > 1 else ''
                 cnt = r.get('entry_signal_count', 1)
-                new_signals_reentry.append(f"🚀 {sym}(現貨做多再次進場·第{cnt}次，首次:{entry_dates[0] if entry_dates else '?'})")
+                cn = ['一','二','三','四','五','六','七','八','九','十']
+                dates_str = '、'.join(f"第{cn[k] if k < len(cn) else str(k+1)}次:{d}" for k, d in enumerate(entry_dates[:-1]))
+                new_signals_reentry.append(f"🚀 {sym}(現貨做多再次進場·第{cnt}次，{dates_str})")
         elif r.get("spot_exit"):
             new_signals_first.append(f"🔴 {sym}(現貨出場)")
         elif r.get("short_entry"):
@@ -261,7 +262,9 @@ def format_signals_message(signals, results, scan_time=""):
                 new_signals_first.append(f"📉 {sym}(1X做空首次進場)")
             else:
                 cnt = r.get('entry_signal_count', 1)
-                new_signals_reentry.append(f"📉 {sym}(1X做空再次進場·第{cnt}次，首次:{entry_dates[0] if entry_dates else '?'})")
+                cn = ['一','二','三','四','五','六','七','八','九','十']
+                dates_str = '、'.join(f"第{cn[k] if k < len(cn) else str(k+1)}次:{d}" for k, d in enumerate(entry_dates[:-1]))
+                new_signals_reentry.append(f"📉 {sym}(1X做空再次進場·第{cnt}次，{dates_str})")
         elif r.get("short_exit"):
             new_signals_first.append(f"🔄 {sym}(做空出場)")
 

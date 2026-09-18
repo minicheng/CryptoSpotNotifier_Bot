@@ -349,8 +349,9 @@ def analyze_coin(coin):
             if is_first_entry:
                 action_advice = "今日滿足全數共振條件，觸發“現貨做多首次進場訊號”，可考慮分批建倉現貨。"
             else:
-                past_dates_str = "、".join(past_entry_dates)
-                action_advice = f"今日再次滿足全數共振條件，觸發“現貨做多再次進場訊號”（本波第{entry_signal_count}次，前次: {past_dates_str}），可考慮加碼或確認持倉方向。"
+                cn = ["一","二","三","四","五","六","七","八","九","十"]
+                past_dates_str = "、".join(f"第{cn[k] if k < len(cn) else str(k+1)}次:{d}" for k, d in enumerate(past_entry_dates))
+                action_advice = f"今日再次滿足全數共振條件，觸發\u201c現貨做多再次進場訊號\u201d（本波第{entry_signal_count}次，{past_dates_str}），可考慮加碼或確認持倉方向。"
         elif first_entry_date:
             action_advice = f"自{first_entry_date}訊號出現“現貨做多進場訊號”後，目前趨勢尚未反轉向下，因此現貨可續抱。"
         else:
@@ -370,8 +371,9 @@ def analyze_coin(coin):
             if is_first_entry:
                 action_advice = "今日跌破支撐且放量，觸發“1X做空首次進場訊號”，空方動能強勁。"
             else:
-                past_dates_str = "、".join(past_entry_dates)
-                action_advice = f"今日再次跌破支撐且放量，觸發“1X做空再次進場訊號”（本波第{entry_signal_count}次，前次: {past_dates_str}），空方動能持續。"
+                cn = ["一","二","三","四","五","六","七","八","九","十"]
+                past_dates_str = "、".join(f"第{cn[k] if k < len(cn) else str(k+1)}次:{d}" for k, d in enumerate(past_entry_dates))
+                action_advice = f"今日再次跌破支撐且放量，觸發\u201c1X做空再次進場訊號\u201d（本波第{entry_signal_count}次，{past_dates_str}），空方動能持續。"
         elif first_entry_date:
             action_advice = f"自{first_entry_date}訊號出現“做空進場訊號”後，目前趨勢向下，空頭格局尚未扭轉，現貨宜空倉觀望。"
         else:
