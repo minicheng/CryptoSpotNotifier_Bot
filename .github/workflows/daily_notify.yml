@@ -1,16 +1,13 @@
 name: FT 波段策略每日通知
 
 on:
-  # 每天 UTC 00:00 觸發 = 台北時間 08:00
-  schedule:
-    - cron: '0 0 * * *'
-
   # 手動觸發（用於測試）
   workflow_dispatch:
 
-  # Cron-job.org 備援觸發
+  # Cron-job.org 定時觸發（每天 08:00 台北時間，唯一主定時觸發源）
   repository_dispatch:
     types: [daily-scan]
+
 
 # 避免重複執行
 concurrency:
