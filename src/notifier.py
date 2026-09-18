@@ -191,11 +191,19 @@ def _format_overview_coin_line(i, r):
 
     sig = ""
     if r.get("spot_entry"):
-        sig = " | 訊號: 🚀現貨做多進場"
+        if r.get("is_first_entry"):
+            sig = " | 訊號: 🚀現貨做多首次進場"
+        else:
+            cnt = r.get('entry_signal_count', 1)
+            sig = f" | 訊號: 🚀現貨做多再次進場(第{cnt}次)"
     elif r.get("spot_exit"):
         sig = " | 訊號: 🛑現貨出場"
     elif r.get("short_entry"):
-        sig = " | 訊號: 📉1X做空進場"
+        if r.get("is_first_entry"):
+            sig = " | 訊號: 📉1X做空首次進場"
+        else:
+            cnt = r.get('entry_signal_count', 1)
+            sig = f" | 訊號: 📉1X做空再次進場(第{cnt}次)"
     elif r.get("short_exit"):
         sig = " | 訊號: 🔄做空出場"
 
@@ -233,20 +241,32 @@ def format_signals_message(signals, results, scan_time=""):
 
     lines.append(sep)
 
-    # ⚡️今日新訊號（第1天）:
-    new_signals = []
+    # ⚡️今日訊號:
+    new_signals_first = []
+    new_signals_reentry = []
     for r in results:
         sym = r.get("symbol", "")
+        entry_dates = r.get("entry_signal_dates", [])
         if r.get("spot_entry"):
-            new_signals.append(f"🚀 {sym}(現貨做多進場)")
+            if r.get("is_first_entry"):
+                new_signals_first.append(f"🚀 {sym}(現貨做多首次進場)")
+            else:
+                past = '、'.join(entry_dates[:-1]) if len(entry_dates) > 1 else ''
+                cnt = r.get('entry_signal_count', 1)
+                new_signals_reentry.append(f"🚀 {sym}(現貨做多再次進場·第{cnt}次，首次:{entry_dates[0] if entry_dates else '?'})")
         elif r.get("spot_exit"):
-            new_signals.append(f"🔴 {sym}(現貨出場)")
+            new_signals_first.append(f"🔴 {sym}(現貨出場)")
         elif r.get("short_entry"):
-            new_signals.append(f"📉 {sym}(1X做空進場)")
+            if r.get("is_first_entry"):
+                new_signals_first.append(f"📉 {sym}(1X做空首次進場)")
+            else:
+                cnt = r.get('entry_signal_count', 1)
+                new_signals_reentry.append(f"📉 {sym}(1X做空再次進場·第{cnt}次，首次:{entry_dates[0] if entry_dates else '?'})")
         elif r.get("short_exit"):
-            new_signals.append(f"🔄 {sym}(做空出場)")
+            new_signals_first.append(f"🔄 {sym}(做空出場)")
 
-    lines.append("⚡️今日新訊號（第1天）:")
+    new_signals = new_signals_first + new_signals_reentry
+    lines.append("⚡️今日訊號:")
     if new_signals:
         for s in new_signals:
             lines.append(s)

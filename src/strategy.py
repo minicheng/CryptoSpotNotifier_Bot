@@ -271,6 +271,7 @@ def analyze_coin(coin):
     # 做空出場（RD 剛翻轉為多頭的第一天）
     short_exit = (status_rd == 3 and trend_days == 1)
 
+
     # ===== 尋找趨勢波段中歷史進場訊號日期（以生成精確操作建議） =====
     entry_dates_in_trend = []
     first_entry_date = None
@@ -305,6 +306,18 @@ def analyze_coin(coin):
         if entry_dates_in_trend:
             first_entry_date = entry_dates_in_trend[0]
 
+    # ===== 判斷首次進場 vs 再次進場 =====
+    entry_signal_count = len(entry_dates_in_trend)  # 本波趨勢中累計觸發進場訊號的次數
+    # 如果今天滿足進場條件，且歷史中不含今天 → 只有 1 次（即今天自己），就是首次
+    # 如果歷史中已有 >= 2 次，代表之前已觸發過，今天是「再次進場」
+    if spot_entry or short_entry:
+        is_first_entry = (entry_signal_count <= 1)
+        # 過去歷史進場日（不含今天）
+        past_entry_dates = entry_dates_in_trend[:-1] if entry_signal_count > 1 else []
+    else:
+        is_first_entry = False
+        past_entry_dates = entry_dates_in_trend
+
     # ===== 4 大條件狀態檢核 (卡片顯示 (2/4) 與打勾打叉) =====
     if status_rd == 3:  # 多頭
         cond1_ok = (close > ema10 and ema10 > ema20)
@@ -333,7 +346,11 @@ def analyze_coin(coin):
     # ===== 操作建議與注意事項自動生成 =====
     if status_rd == 3:  # 多頭
         if spot_entry:
-            action_advice = "今日滿足全數共振條件，觸發“現貨做多進場訊號”，可考慮分批建倉現貨。"
+            if is_first_entry:
+                action_advice = "今日滿足全數共振條件，觸發“現貨做多首次進場訊號”，可考慮分批建倉現貨。"
+            else:
+                past_dates_str = "、".join(past_entry_dates)
+                action_advice = f"今日再次滿足全數共振條件，觸發“現貨做多再次進場訊號”（本波第{entry_signal_count}次，前次: {past_dates_str}），可考慮加碼或確認持倉方向。"
         elif first_entry_date:
             action_advice = f"自{first_entry_date}訊號出現“現貨做多進場訊號”後，目前趨勢尚未反轉向下，因此現貨可續抱。"
         else:
@@ -350,7 +367,11 @@ def analyze_coin(coin):
         if spot_exit:
             action_advice = "今日趨勢翻空觸發“現貨出場訊號”，建議現貨停損/獲利了結離場觀望。"
         elif short_entry:
-            action_advice = "今日跌破支撐且放量，觸發“1X做空進場訊號”，空方動能強勁。"
+            if is_first_entry:
+                action_advice = "今日跌破支撐且放量，觸發“1X做空首次進場訊號”，空方動能強勁。"
+            else:
+                past_dates_str = "、".join(past_entry_dates)
+                action_advice = f"今日再次跌破支撐且放量，觸發“1X做空再次進場訊號”（本波第{entry_signal_count}次，前次: {past_dates_str}），空方動能持續。"
         elif first_entry_date:
             action_advice = f"自{first_entry_date}訊號出現“做空進場訊號”後，目前趨勢向下，空頭格局尚未扭轉，現貨宜空倉觀望。"
         else:
@@ -414,6 +435,9 @@ def analyze_coin(coin):
         "spot_exit": spot_exit,
         "short_entry": short_entry,
         "short_exit": short_exit,
+        "is_first_entry": is_first_entry,
+        "entry_signal_count": entry_signal_count,
+        "entry_signal_dates": entry_dates_in_trend,
         # 個幣卡片擴充欄位
         "ohlcv": ohlcv,
         "first_entry_date": first_entry_date,
